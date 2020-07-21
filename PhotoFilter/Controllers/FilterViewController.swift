@@ -7,24 +7,62 @@
 //
 
 import UIKit
+protocol PhotoFilterViewControllerDelegate {
+    func photoFilterDone()
+    func photoFilterCancel()
+}
 
-class FilterViewController: UIViewController {
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-
-        // Do any additional setup after loading the view.
-    }
+class FilterViewController: UIViewController, FiltersScrollViewDelegate {
     
-
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
-    }
-    */
+    var image: UIImage!
+    private var filtersService: FiltersService!
+       
+       var delegate: PhotoFilterViewControllerDelegate?
+       
+       @IBOutlet weak var filtersScrollView: FiltersScrollView!
+       @IBOutlet weak var photoImageView: UIImageView!
+       
+       override func viewDidLoad() {
+           super.viewDidLoad()
+           setupUI()
+       }
+       
+       @IBAction func cancelButtonPressed() {
+           self.delegate?.photoFilterCancel()
+       }
+       
+       @IBAction func doneButtonPressed() {
+           
+           guard let selectedImage = self.photoImageView.image else {
+               return
+           }
+           
+           UIImageWriteToSavedPhotosAlbum(selectedImage, self, #selector(image(_:didFinishSavingWithError:contextInfo:)), nil)
+           
+       }
+       
+       @objc func image(_ image: UIImage, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
+           
+           if let error = error {
+               print(error.localizedDescription)
+           } else {
+               self.delegate?.photoFilterDone()
+           }
+       }
+       
+       func filtersScrollViewDidSelectFilter(filter: CIFilter) {
+           
+           self.filtersService.applyFilter(filter: filter, to: self.image!) {
+               self.photoImageView.image = $0
+           }
+       }
+       
+       private func setupUI() {
+           
+           self.filtersService = FiltersService()
+           self.filtersScrollView.filterDelegate = self
+           self.photoImageView.image = self.image
+           
+       }
 
 }
